@@ -419,6 +419,7 @@ NOSPEQ     [\001-\177]{-}[\040\041\043\075]|[\300-\337].|[\340-\357]..|[\360-\36
 <FUNC_4>{BRACED}       { strcat(funcdef, interfacetext); }
 <FUNC_4>%{ANY}         { strcat(funcdef, interfacetext); }
 <FUNC_4>{QUOTED}       { strcat(funcdef, interfacetext); }
+<FUNC_4>(#|!).*        { }
 <FUNC_4>;              { strcat(funcdef, interfacetext); add_defined_function(g_defines_f, func_name, funcdef, (func_arg_no-1));clear_func_args(); xxfree(func_name); BEGIN(INITIAL); }
 <FUNC_4>.|\.#\.        { strcat(funcdef, interfacetext); }
 
