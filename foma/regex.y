@@ -371,6 +371,7 @@ network12: fend    { $$ = $1; } |
          ISFUNCTIONAL network RPAREN    { $$ = fsm_boolean(fsm_isfunctional($2)); } |
          ISUNAMBIGUOUS network RPAREN   { $$ = fsm_boolean(fsm_isunambiguous($2)); } |
          NOTID network RPAREN           { $$ = fsm_extract_nonidentity(fsm_copy($2)); } |
+         NOTID network COMMA NCONCAT RPAREN { $$ = fsm_extract_nonidentity_approx(fsm_copy($2), atoi($4)); } |
          LOWERUNIQ network RPAREN       { $$ = fsm_lowerdet(fsm_copy($2)); } |
          LOWERUNIQEPS network RPAREN    { $$ = fsm_lowerdeteps(fsm_copy($2)); } |
          ALLFINAL network RPAREN        { $$ = fsm_markallfinal(fsm_copy($2)); } |

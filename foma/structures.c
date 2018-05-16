@@ -635,6 +635,10 @@ struct fsm *fsm_lowerdeteps(struct fsm *net) {
 }
 
 struct fsm *fsm_extract_nonidentity(struct fsm *net) {
+    return fsm_extract_nonidentity_approx(net, -1);
+}
+
+struct fsm *fsm_extract_nonidentity_approx(struct fsm *net, int approx_limit) {
 
     /* Same algorithm as for test identity, except we mark the arcs that cause nonidentity */
     /* Experimental. */
@@ -677,6 +681,10 @@ struct fsm *fsm_extract_nonidentity(struct fsm *net) {
         out = curr_ptr->out;
 
         targetd = discrepancy+vp;
+        /* Approximate by limiting complexity */
+        if (approx_limit >= 0 && v > approx_limit) {
+            goto fail;
+        }
         /* Check arc and conditions e) d) b) */
         /* e) */
         if (in == UNKNOWN || out == UNKNOWN)
