@@ -546,6 +546,16 @@ struct fsm *fsm_markallfinal(struct fsm *net) {
     return net;
 }
 
+struct fsm *fsm_marksomenonfinal(struct fsm *net) {
+    struct fsm_state *fsm;
+    int i;
+    fsm = net->states;
+    for (i=1; (fsm+i)->state_no != -1; i++) {
+        (fsm+i)->final_state = NO;
+    }
+    return net;
+}
+
 struct fsm *fsm_lowerdet(struct fsm *net) {
     unsigned int newsym; /* Running number for new syms */
     struct fsm_state *fsm;

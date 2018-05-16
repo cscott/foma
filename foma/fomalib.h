@@ -256,6 +256,7 @@ FEXPORT struct fsm *fsm_logical_precedence(char *string1, char *string2);
 FEXPORT struct fsm *fsm_lowerdet(struct fsm *net);
 FEXPORT struct fsm *fsm_lowerdeteps(struct fsm *net);
 FEXPORT struct fsm *fsm_markallfinal(struct fsm *net);
+FEXPORT struct fsm *fsm_marksomenonfinal(struct fsm *net);
 FEXPORT struct fsm *fsm_extract_nonidentity(struct fsm *net);
 FEXPORT struct fsm *fsm_extract_ambiguous_domain(struct fsm *net);
 FEXPORT struct fsm *fsm_extract_ambiguous(struct fsm *net);

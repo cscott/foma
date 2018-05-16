@@ -307,6 +307,7 @@ BRACED      [{]([^}]|[\300-\337].|[\340-\357]..|[\360-\367]...)+[}]
 (_loweruniq\()       { return LOWERUNIQ;       }
 (_loweruniqeps\()    { return LOWERUNIQEPS;    }
 (_allfinal\()        { return ALLFINAL;        }
+(_somenonfinal\()    { return SOMENONFINAL;    }
 (_unambpart\()       { return UNAMBIGUOUSPART; }
 (_ambpart\()         { return AMBIGUOUSPART;   }
 (_ambdom\()          { return AMBIGUOUSDOMAIN; }
