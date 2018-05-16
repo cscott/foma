@@ -108,6 +108,7 @@ struct global_help {
     {"apply down","enter apply down mode (Ctrl-D exits)","Short form: down\n"},
     {"apply med","enter apply med mode (Ctrl-D exits)","Short form: med\n"},
     {"apropos <string>","search help for <string>",""},
+    {"byte machine","converts top FSM to a byte machine","See also: _bm(L)"},
     {"clear stack","clears the stack",""},
     {"close sigma","removes unknown symbols from FSM","" },
     {"compact sigma","removes redundant symbols from FSM","" },
@@ -489,6 +490,11 @@ void iface_apply_up(char *word) {
             break;
         printf("%s\n",result);
     }
+}
+
+void iface_byte_machine() {
+    if (iface_stack_check(1))
+        stack_add(fsm_topsort(fsm_minimize(fsm_byte_machine(stack_pop()))));
 }
 
 void iface_close() {

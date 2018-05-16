@@ -302,6 +302,7 @@ BRACED      [{]([^}]|[\300-\337].|[\340-\357]..|[\360-\367]...)+[}]
 (_isidentity\()      { return ISIDENTITY;      } 
 (_isfunctional\()    { return ISFUNCTIONAL;    }
 (_notid\()           { return NOTID;           }
+(_bm\()              { return BYTEMACHINE;   }
 (_lm\()              { return LETTERMACHINE;   }
 (_loweruniq\()       { return LOWERUNIQ;       }
 (_loweruniqeps\()    { return LOWERUNIQEPS;    }

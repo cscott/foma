@@ -69,6 +69,7 @@ void iface_apply_med(char *word);
 void iface_apply_set_params(struct apply_handle *h);
 void iface_apply_up(char *word);
 void iface_apropos(char *s);
+void iface_byte_machine(void);
 void iface_close(void);
 void iface_compact(void);
 void iface_complete(void);

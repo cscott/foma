@@ -146,6 +146,153 @@ struct fsm *fsm_letter_machine(struct fsm *net) {
     return(outnet);
 }
 
+/* Convert a multicharacter-string-containing machine or a "letter" */
+/* machine (where all arcs are single unicode characters) to the */
+/* equivalent "byte" machine where all arcs are single bytes in the */
+/* utf8 encoding of the character.  We need to take special care with */
+/* the "anything else" character, since it may be multiple UTF8 bytes. */
+
+struct fsm *fsm_byte_machine(struct fsm *net) {
+
+    struct fsm *outnet;
+    struct fsm *utfnet;
+    struct fsm *signet;
+    struct fsm_read_handle *inh;
+    struct fsm_construct_handle *outh;
+    struct fsm_construct_handle *utfh;
+    struct fsm_construct_handle *sigh;
+    int i, steps, source, target, addstate, innum, outnum, inlen, outlen;
+    int u8inlen, u8outlen;
+    char *in, *out, *currin, *currout, tmpin[128], tmpout[128];
+    struct sigma *sigma;
+
+    inh = fsm_read_init(fsm_minimize(net));
+    outh = fsm_construct_init("name");
+    utfh = fsm_construct_init("utf8 character");
+    sigh = fsm_construct_init("sigma");
+
+    // Add all 64 UTF-8 "continuation" symbols; we'll need these when
+    // redefining the "anything" transitions.
+    for (i=0x80; i<0xC0; i++) {
+        snprintf(tmpin, sizeof(tmpin), "%2X", i);
+        fsm_construct_add_symbol(outh, tmpin);
+        fsm_construct_add_arc(utfh, 1, 1, tmpin, tmpin);
+        fsm_construct_add_arc(sigh, 1, 1, tmpin, tmpin);
+    }
+
+    // Manually build a machine for a single utf8 codepoint:
+    // [\UTF8CONT] [UTF8CONT]*
+    fsm_construct_add_arc(utfh, 0, 1, "@_IDENTITY_SYMBOL_@", "@_IDENTITY_SYMBOL_@");
+    fsm_construct_set_initial(utfh, 0);
+    fsm_construct_set_final(utfh, 1);
+    utfnet = fsm_construct_done(utfh);
+
+    // Build a network that recognizes individual characters from the input
+    // network's alphabet.
+    addstate = 2;
+    for (sigma = inh->net->sigma; sigma != NULL; sigma = sigma->next) {
+        if (sigma->number > IDENTITY && utf8strlen(sigma->symbol) == 1) {
+            source = 0;
+            for (i=0; sigma->symbol[i] != 0; i++) {
+                snprintf(tmpin, sizeof(tmpin), "%2X", (unsigned char) sigma->symbol[i]);
+                target = (sigma->symbol[i+1] == 0) ? 1 : addstate++;
+                fsm_construct_add_arc(sigh, source, target, tmpin, tmpin);
+                fsm_construct_set_final(sigh, target);
+                source = target;
+            }
+        }
+    }
+    fsm_construct_set_initial(sigh, 0);
+    signet = fsm_construct_done(sigh);
+
+    // Now go ahead and split arcs in the original network.
+    addstate = net->statecount;
+    while (fsm_get_next_arc(inh)) {
+	in = fsm_get_arc_in(inh);
+	out = fsm_get_arc_out(inh);
+	innum = fsm_get_arc_num_in(inh);
+	outnum = fsm_get_arc_num_out(inh);
+	source = fsm_get_arc_source(inh);
+	target = fsm_get_arc_target(inh);
+
+	if (((innum > IDENTITY)) || ((outnum > IDENTITY))) {
+	    inlen = innum <= IDENTITY ? 1 : strlen(in);
+	    outlen = outnum <= IDENTITY ? 1 : strlen(out);
+	    u8inlen = innum <= IDENTITY ? 1 : utf8strlen(in);
+	    u8outlen = outnum <= IDENTITY ? 1 : utf8strlen(out);
+	    /* keep multi-char symbols intact */
+	    if (u8inlen > 1) { inlen = 1; }
+	    if (u8outlen > 1) { outlen = 1; }
+	    steps = inlen > outlen ? inlen : outlen;
+	    target = addstate;
+	    for (i = 0; i < steps; i++) {
+		if (innum <= IDENTITY || inlen < 1 || u8inlen > 1) {
+		    if (inlen < 1)
+			currin = "@_EPSILON_SYMBOL_@";
+		    else
+			currin = in;
+		} else {
+		    snprintf(tmpin, sizeof(tmpin), "%2X", (unsigned char) *in);
+		    currin = tmpin;
+		    inlen--;
+		    in = in+1;
+		}
+		if (outnum <= IDENTITY || outlen < 1 || u8outlen > 1) {
+		    if (outlen < 1)
+			currout = "@_EPSILON_SYMBOL_@";
+		    else
+			currout = out;
+		} else {
+		    snprintf(tmpout, sizeof(tmpout), "%2X", (unsigned char) *out);
+		    currout = tmpout;
+		    out = out+1;
+		    outlen--;
+		}
+		if (i == 0 && steps == 1) {
+		    target = fsm_get_arc_target(inh);
+		}
+		if (i == 0 && steps > 1) {
+		    target = addstate;
+		    addstate++;
+		}
+		if (i > 0 && (steps-i == 1)) {
+		    source = addstate - 1;
+		    target = fsm_get_arc_target(inh);
+		}
+		if (i > 0 && (steps-i != 1)) {
+		    source = addstate-1;
+		    target = addstate;
+		    addstate++;
+		}
+		fsm_construct_add_arc(outh,source,target,currin,currout);
+	    }
+	} else {
+	    fsm_construct_add_arc(outh,source,target,in,out);
+	}
+    }
+    while ((i = fsm_get_next_final(inh)) != -1) {
+	fsm_construct_set_final(outh, i);
+    }
+    while ((i = fsm_get_next_initial(inh)) != -1) {
+	fsm_construct_set_initial(outh, i);
+    }
+    fsm_read_done(inh);
+    outnet = fsm_construct_done(outh);
+
+    // Now combine outnet, signet, and utfnet for the final result.
+    // We're looking for:
+    //   substitute [utfnet - signet] for @_IDENTITY_SYMBOL_@ in outnet
+    // Note that [utfnet - signet] needs to have sigma <= outnet's sigma,
+    // or else substitute_label will have unintended effects when it
+    // does its original merge_sigma.
+    utfnet = fsm_minus(utfnet, signet);
+
+    // XXX outnet and utfnet need to be freed here?
+    // XXX also the original network?
+
+    return fsm_substitute_label(outnet, "@_IDENTITY_SYMBOL_@", utfnet);
+}
+
 struct fsm *fsm_explode(char *symbol) {
     struct fsm *net;
     struct fsm_construct_handle *h;

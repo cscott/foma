@@ -264,6 +264,7 @@ FEXPORT struct fsm *fsm_sigma_net(struct fsm *net);
 FEXPORT struct fsm *fsm_sigma_pairs_net(struct fsm *net);
 FEXPORT struct fsm *fsm_equal_substrings(struct fsm *net, struct fsm *left, struct fsm *right);
 FEXPORT struct fsm *fsm_letter_machine(struct fsm *net);
+FEXPORT struct fsm *fsm_byte_machine(struct fsm *net);
 FEXPORT struct fsm *fsm_mark_fsm_tail(struct fsm *net, struct fsm *marker);
 FEXPORT struct fsm *fsm_add_loop(struct fsm *net, struct fsm *marker, int finals);
 FEXPORT struct fsm *fsm_add_sink(struct fsm *net, int final);
